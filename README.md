@@ -9,7 +9,7 @@ Dev backend: Convex deployment `blissful-sheep-547` (project `cerenity-ai`). Pro
 | Requirement | Where it lives |
 | --- | --- |
 | Web front-end | [`app/page.tsx`](app/page.tsx), [`components/chat/ChatWindow.tsx`](components/chat/ChatWindow.tsx) |
-| AI model API | [`convex/chatActions.ts`](convex/chatActions.ts) (`generateText` + `gpt-4o-mini`) |
+| AI model API | [`convex/chatActions.ts`](convex/chatActions.ts) + [`lib/models.ts`](lib/models.ts) (OpenAI and OpenRouter) |
 | Message store | `threads` + `messages` tables, [`convex/messages.ts`](convex/messages.ts) |
 | Structured store | `products` + `employees` (Convex runtime) and [`db/migrations/001_init.sql`](db/migrations/001_init.sql) (portable SQL) |
 | Unstructured / vectors | `@convex-dev/rag` now; [`db/migrations/002_vector_store.sql`](db/migrations/002_vector_store.sql) for a future Postgres + pgvector swap |
@@ -26,7 +26,7 @@ flowchart TD
   history --> prompt[System prompt + context]
   structured --> prompt
   vectors --> prompt
-  prompt --> llm["OpenAI gpt-4o-mini"]
+  prompt --> llm["OpenAI or OpenRouter model"]
   llm --> save[Save messages + citations]
   save --> live[UI via useQuery]
 ```
@@ -43,11 +43,15 @@ Convex is **not SQL**. Schema is applied from [`convex/schema.ts`](convex/schema
 npx convex dev --env-file .env.example
 ```
 
-4. Set the model key **on the Convex deployment** (not in Next.js). Without this, the UI loads but every send fails:
+4. Set **at least one** model key on the Convex deployment (not in Next.js). Without this, the UI loads but every send fails:
 
 ```bash
 npx convex env set OPENAI_API_KEY --env-file .env.example
+# and/or
+npx convex env set OPENROUTER_API_KEY --env-file .env.example
 ```
+
+The chat header model menu lists OpenAI models when `OPENAI_API_KEY` is set, and OpenRouter models (Claude, Gemini, Llama, etc.) when `OPENROUTER_API_KEY` is set. Embeddings use OpenAI `text-embedding-3-small` if that key exists, otherwise the same model via OpenRouter.
 
 5. Seed catalog + policy embeddings:
 

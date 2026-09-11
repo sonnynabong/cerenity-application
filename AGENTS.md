@@ -25,12 +25,18 @@ If MCP cannot see `blissful-sheep-547`, mint a **deployment** token (`dev:blissf
 ## Learned User Preferences
 
 - Keep Convex deploy keys out of git and out of tracked MCP config; store them only in `.env.local`.
+- Make one git commit per goal; do not squash and do not push unless asked.
+- Keep portable SQL migrations in lockstep with the Convex schema for GitHub CI/CD and a possible future database swap.
+- Use Convex MCP (`convex_cerenity`, fallback `plugin-convex-convex`) and follow AGENTS.md when changing backend data.
 
 ## Learned Workspace Facts
 
 - Convex MCP server in this repo is named `convex_cerenity` and targets `blissful-sheep-547`.
 - Convex team is `sonny-nabong`, project is `cerenity-ai`, primary MCP deployment is `blissful-sheep-547`.
 - Production Convex deployment is `majestic-gazelle-859` and should stay read-only by default.
+- This app is a Next.js + Convex hybrid RAG chatbot using structured `products`/`employees` tables and unstructured `@convex-dev/rag` policy docs.
+- Portable Postgres DDL lives in `db/migrations/` as a 1:1 mirror of `convex/schema.ts`; Convex does not execute SQL. `@convex-dev/migrations` handles Convex data backfills.
+- GitHub Actions deploys Convex to production with `npx convex deploy` and repo secret `CONVEX_DEPLOY_KEY`; do not run that deploy locally.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

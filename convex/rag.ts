@@ -1,10 +1,15 @@
 import { RAG } from "@convex-dev/rag";
-import { openai } from "@ai-sdk/openai";
 import { components } from "./_generated/api";
+import { embeddingLanguageModel } from "./ai";
 
-export const rag = new RAG(components.rag, {
-  textEmbeddingModel: openai.embedding("text-embedding-3-small"),
-  embeddingDimension: 1536,
-});
+let ragSingleton: RAG | undefined;
+
+export function getRag(): RAG {
+  ragSingleton ??= new RAG(components.rag, {
+    textEmbeddingModel: embeddingLanguageModel(),
+    embeddingDimension: 1536,
+  });
+  return ragSingleton;
+}
 
 export const POLICY_NAMESPACE = "cerenity-policies";

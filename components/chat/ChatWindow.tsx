@@ -8,8 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DEFAULT_CHAT_MODEL_ID } from "@/lib/models";
 
 const THREAD_KEY = "cerenity-thread-id";
+const MODEL_KEY = "cerenity-model-id";
 
 const SAMPLE_PROMPTS = [
   "What is the price of SKU CER-104?",
@@ -33,6 +44,20 @@ function persistThreadId(id: Id<"threads">) {
   window.dispatchEvent(new Event("cerenity-thread"));
 }
 
+function subscribeModel(onChange: () => void) {
+  window.addEventListener("cerenity-model", onChange);
+  return () => window.removeEventListener("cerenity-model", onChange);
+}
+
+function readModelId(): string | null {
+  return window.localStorage.getItem(MODEL_KEY);
+}
+
+function persistModelId(id: string) {
+  window.localStorage.setItem(MODEL_KEY, id);
+  window.dispatchEvent(new Event("cerenity-model"));
+}
+
 type Citation = {
   kind: "structured" | "document";
   title: string;
@@ -43,6 +68,8 @@ export function ChatWindow() {
   const createThread = useMutation(api.threads.create);
   const sendMessage = useAction(api.chatActions.send);
   const threadId = useSyncExternalStore(subscribeThread, readThreadId, () => null);
+  const storedModelId = useSyncExternalStore(subscribeModel, readModelId, () => null);
+  const modelOptions = useQuery(api.models.list);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +78,17 @@ export function ChatWindow() {
     api.messages.listByThread,
     threadId ? { threadId } : "skip",
   );
+
+  const modelId =
+    storedModelId &&
+    modelOptions?.models.some((model) => model.id === storedModelId)
+      ? storedModelId
+      : (modelOptions?.defaultModelId ?? DEFAULT_CHAT_MODEL_ID);
+
+  const openaiModels =
+    modelOptions?.models.filter((model) => model.provider === "openai") ?? [];
+  const openrouterModels =
+    modelOptions?.models.filter((model) => model.provider === "openrouter") ?? [];
 
   async function ensureThread(): Promise<Id<"threads">> {
     if (threadId) {
@@ -71,7 +109,11 @@ export function ChatWindow() {
     setDraft("");
     try {
       const activeThreadId = await ensureThread();
-      const result = await sendMessage({ threadId: activeThreadId, prompt });
+      const result = await sendMessage({
+        threadId: activeThreadId,
+        prompt,
+        modelId,
+      });
       persistThreadId(result.threadId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to send");
@@ -98,7 +140,8 @@ export function ChatWindow() {
         <h1 className="text-2xl font-semibold tracking-tight">Assistant</h1>
         <p className="text-sm text-muted-foreground">
           Answers come from the product catalog, staff directory, and handbook
-          excerpts — not model memory.
+          excerpts — not model memory. Pick OpenAI or OpenRouter in the model
+          menu.
         </p>
       </header>
 
@@ -164,13 +207,63 @@ export function ChatWindow() {
             }
           }}
         />
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             Enter to send · Shift+Enter for a new line
           </p>
-          <Button type="submit" disabled={sending || draft.trim().length === 0}>
-            Send
-          </Button>
+          <div className="flex items-center gap-2">
+            {modelOptions && modelOptions.models.length === 0 ? (
+              <p className="text-xs text-destructive">
+                Set OPENAI_API_KEY or OPENROUTER_API_KEY on Convex
+              </p>
+            ) : (
+              <Select
+                value={modelId}
+                onValueChange={(value) => {
+                  if (typeof value === "string") {
+                    persistModelId(value);
+                  }
+                }}
+                disabled={sending || !modelOptions}
+              >
+                <SelectTrigger className="w-56" size="sm">
+                  <SelectValue placeholder="Choose a model" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {openaiModels.length > 0 ? (
+                    <SelectGroup>
+                      <SelectLabel>OpenAI</SelectLabel>
+                      {openaiModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ) : null}
+                  {openrouterModels.length > 0 ? (
+                    <SelectGroup>
+                      <SelectLabel>OpenRouter</SelectLabel>
+                      {openrouterModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ) : null}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+            type="submit"
+            disabled={
+              sending ||
+              draft.trim().length === 0 ||
+              !modelOptions?.models.length
+            }
+          >
+              Send
+            </Button>
+          </div>
         </div>
       </form>
     </div>

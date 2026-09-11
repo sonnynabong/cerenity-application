@@ -1,12 +1,13 @@
 "use node";
 
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { POLICY_NAMESPACE, rag } from "./rag";
+import { POLICY_NAMESPACE, getRag } from "./rag";
+import { chatLanguageModel } from "./ai";
+import { DEFAULT_CHAT_MODEL_ID, getChatModelOption } from "../lib/models";
 import { citationValidator } from "./validators";
 import type { Citation } from "../lib/catalog";
 
@@ -26,6 +27,7 @@ export const send = action({
   args: {
     threadId: v.optional(v.id("threads")),
     prompt: v.string(),
+    modelId: v.optional(v.string()),
   },
   returns: v.object({
     threadId: v.id("threads"),
@@ -44,11 +46,9 @@ export const send = action({
     if (!prompt) {
       throw new Error("Prompt cannot be empty");
     }
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error(
-        "OPENAI_API_KEY is not set on the Convex deployment. Run `npx convex env set OPENAI_API_KEY` then `npx convex run seed:run`.",
-      );
-    }
+    const modelId = args.modelId ?? DEFAULT_CHAT_MODEL_ID;
+    getChatModelOption(modelId);
+    const rag = getRag();
 
     const threadId: Id<"threads"> =
       args.threadId ?? (await ctx.runMutation(api.threads.create, {}));
@@ -122,7 +122,7 @@ export const send = action({
       .join("\n");
 
     const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
+      model: chatLanguageModel(modelId),
       system: SYSTEM_PROMPT,
       prompt: `STRUCTURED FACTS:
 ${structuredLines.length > 0 ? structuredLines.join("\n") : "(none)"}

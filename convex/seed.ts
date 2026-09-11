@@ -4,7 +4,8 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { POLICY_DOCS } from "./policyDocs";
-import { POLICY_NAMESPACE, rag } from "./rag";
+import { requireAnyProviderKey } from "./providerKeys";
+import { POLICY_NAMESPACE, getRag } from "./rag";
 
 export const run = internalAction({
   args: {},
@@ -28,11 +29,8 @@ export const run = internalAction({
     const counts: { products: number; employees: number } =
       await ctx.runMutation(internal.seedMutations.seedStructured, {});
 
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error(
-        "Catalog seeded, but OPENAI_API_KEY is missing on the Convex deployment. Set it with `npx convex env set OPENAI_API_KEY` then re-run seed:run to ingest policies.",
-      );
-    }
+    requireAnyProviderKey();
+    const rag = getRag();
     const documents: Array<{ title: string; status: string }> = [];
 
     for (const doc of POLICY_DOCS) {
