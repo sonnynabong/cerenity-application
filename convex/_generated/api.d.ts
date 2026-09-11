@@ -8,13 +8,17 @@
  * @module
  */
 
+import type * as migrations from "../migrations.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  migrations: typeof migrations;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.
@@ -42,4 +46,7 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+};
