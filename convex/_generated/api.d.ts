@@ -8,11 +8,17 @@
  * @module
  */
 
+import type * as chatActions from "../chatActions.js";
+import type * as employees from "../employees.js";
+import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as policyDocs from "../policyDocs.js";
+import type * as products from "../products.js";
 import type * as rag from "../rag.js";
 import type * as seed from "../seed.js";
 import type * as seedMutations from "../seedMutations.js";
+import type * as threads from "../threads.js";
+import type * as validators from "../validators.js";
 
 import type {
   ApiFromModules,
@@ -21,11 +27,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  chatActions: typeof chatActions;
+  employees: typeof employees;
+  messages: typeof messages;
   migrations: typeof migrations;
   policyDocs: typeof policyDocs;
+  products: typeof products;
   rag: typeof rag;
   seed: typeof seed;
   seedMutations: typeof seedMutations;
+  threads: typeof threads;
+  validators: typeof validators;
 }>;
 
 /**
