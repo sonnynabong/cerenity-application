@@ -44,6 +44,11 @@ export const send = action({
     if (!prompt) {
       throw new Error("Prompt cannot be empty");
     }
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        "OPENAI_API_KEY is not set on the Convex deployment. Run `npx convex env set OPENAI_API_KEY` then `npx convex run seed:run`.",
+      );
+    }
 
     const threadId: Id<"threads"> =
       args.threadId ?? (await ctx.runMutation(api.threads.create, {}));
