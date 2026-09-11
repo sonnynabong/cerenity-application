@@ -9,6 +9,10 @@
  */
 
 import type * as migrations from "../migrations.js";
+import type * as policyDocs from "../policyDocs.js";
+import type * as rag from "../rag.js";
+import type * as seed from "../seed.js";
+import type * as seedMutations from "../seedMutations.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +22,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
+  policyDocs: typeof policyDocs;
+  rag: typeof rag;
+  seed: typeof seed;
+  seedMutations: typeof seedMutations;
 }>;
 
 /**
