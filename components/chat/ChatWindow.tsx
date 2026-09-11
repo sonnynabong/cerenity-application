@@ -1,7 +1,7 @@
 "use client";
 
 import { useAction, useMutation, useQuery } from "convex/react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,21 @@ const SAMPLE_PROMPTS = [
   "Can a remote hire expense a Pulse Band?",
 ] as const;
 
+function subscribeThread(onChange: () => void) {
+  window.addEventListener("cerenity-thread", onChange);
+  return () => window.removeEventListener("cerenity-thread", onChange);
+}
+
+function readThreadId(): Id<"threads"> | null {
+  const value = window.localStorage.getItem(THREAD_KEY);
+  return value ? (value as Id<"threads">) : null;
+}
+
+function persistThreadId(id: Id<"threads">) {
+  window.localStorage.setItem(THREAD_KEY, id);
+  window.dispatchEvent(new Event("cerenity-thread"));
+}
+
 type Citation = {
   kind: "structured" | "document";
   title: string;
@@ -27,17 +42,10 @@ type Citation = {
 export function ChatWindow() {
   const createThread = useMutation(api.threads.create);
   const sendMessage = useAction(api.chatActions.send);
-  const [threadId, setThreadId] = useState<Id<"threads"> | null>(null);
+  const threadId = useSyncExternalStore(subscribeThread, readThreadId, () => null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(THREAD_KEY);
-    if (stored) {
-      setThreadId(stored as Id<"threads">);
-    }
-  }, []);
 
   const messages = useQuery(
     api.messages.listByThread,
@@ -49,8 +57,7 @@ export function ChatWindow() {
       return threadId;
     }
     const created = await createThread({});
-    window.localStorage.setItem(THREAD_KEY, created);
-    setThreadId(created);
+    persistThreadId(created);
     return created;
   }
 
@@ -65,10 +72,7 @@ export function ChatWindow() {
     try {
       const activeThreadId = await ensureThread();
       const result = await sendMessage({ threadId: activeThreadId, prompt });
-      if (result.threadId !== activeThreadId) {
-        window.localStorage.setItem(THREAD_KEY, result.threadId);
-        setThreadId(result.threadId);
-      }
+      persistThreadId(result.threadId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to send");
     } finally {
