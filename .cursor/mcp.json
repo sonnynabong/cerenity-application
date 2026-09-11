@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "convex_cerenity": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "convex@latest",
+        "mcp",
+        "start",
+        "--project-dir",
+        "K:/git/cerenity-application",
+        "--deployment",
+        "blissful-sheep-547",
+        "--env-file",
+        ".env.local"
+      ]
+    }
+  }
+}
